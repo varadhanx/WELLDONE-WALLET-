@@ -1,0 +1,48 @@
+module loyalty_card::nftdapp {
+    use sui::object::{Self, UID};
+    use sui::transfer;
+    use sui::tx_context::TxContext;
+    use sui::package;
+    
+    /// The Loyalty NFT structure
+    public struct Loyalty has key, store {
+        id: UID,
+        customer_id: address,
+        image_url: string,
+    }
+
+    /// Admin capability for controlling minting
+    public struct AdminCap has key, store {
+        id: UID,
+    }
+
+    /// One-time witness used for publisher initialization
+    public struct LOYALTY_CARD has drop {}
+
+    /// Initialize the publisher and mint an AdminCap
+    public fun init(otw: LOYALTY_CARD, ctx: &mut TxContext): AdminCap {
+        // Claim and keep the one-time witness (to make sure this package is unique)
+        package::claim_and_keep(otw, ctx);
+
+        let admin = AdminCap { id: object::new(ctx) };
+        transfer::share_object(&admin);
+        admin
+    }
+
+    /// Mint a new Loyalty NFT for a customer
+    public fun mint_loyalty(
+        admin: &AdminCap,
+        customer_id: address,
+        image_url: string,
+        ctx: &mut TxContext
+    ): Loyalty {
+        // Only admin can mint
+        let nft = Loyalty {
+            id: object::new(ctx),
+            customer_id,
+            image_url,
+        };
+        transfer::transfer(nft, customer_id);
+        nft
+    }
+}
